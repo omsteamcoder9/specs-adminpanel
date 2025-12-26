@@ -19,9 +19,8 @@ const EditProductModal = ({ isOpen, onClose, onEditProduct, product }) => {
   const [categoriesLoading, setCategoriesLoading] = useState(false);
   const [autoGenerateSlug, setAutoGenerateSlug] = useState(true);
   
-  // ✅ ADDED: Colors state
-  const [colors, setColors] = useState([]);
-  const [showColorSection, setShowColorSection] = useState(false);
+  // ✅ Specifications state
+  const [specifications, setSpecifications] = useState([]);
 
   // FIXED: Get environment variables at the top
   const API_IMG_URL = import.meta.env.VITE_API_IMG_URL;
@@ -86,22 +85,16 @@ const EditProductModal = ({ isOpen, onClose, onEditProduct, product }) => {
       setExistingImages([]);
     }
 
-    // ✅ ADDED: Populate colors from product data
-    if (product.colors && 
-        Array.isArray(product.colors) && 
-        product.colors.length > 0 &&
-        product.colors[0]?.name) {
-      // Product has valid colors
-      setColors(product.colors.map(color => ({
-        name: color.name || '',
-        code: color.code || '#000000',
-        stock: color.stock || 0
+    // ✅ Populate specifications from product data
+    if (product.specifications && 
+        Array.isArray(product.specifications) && 
+        product.specifications.length > 0) {
+      setSpecifications(product.specifications.map(spec => ({
+        key: spec.key || '',
+        value: spec.value || ''
       })));
-      setShowColorSection(true);
     } else {
-      // Product has no colors or empty colors
-      setColors([]);
-      setShowColorSection(false);
+      setSpecifications([]);
     }
 
     setImageFiles([]);
@@ -131,40 +124,24 @@ const EditProductModal = ({ isOpen, onClose, onEditProduct, product }) => {
     setFormData(updatedFormData);
   };
 
-  // ✅ ADDED: Toggle color section
-  const toggleColorSection = () => {
-    if (!showColorSection) {
-      // When enabling colors, add one empty color field if none exist
-      if (colors.length === 0) {
-        setColors([{ name: '', code: '#000000', stock: 0 }]);
-      }
-    } else {
-      // When disabling colors, keep the colors data but mark as disabled
-      // This allows toggling back without losing data
-    }
-    setShowColorSection(!showColorSection);
-  };
-
-  // ✅ ADDED: Color change handlers
-  const handleColorChange = (index, field, value) => {
-    const updatedColors = [...colors];
-    updatedColors[index] = {
-      ...updatedColors[index],
+  // ✅ Specifications change handlers
+  const handleSpecificationChange = (index, field, value) => {
+    const updatedBookStore = [...specifications];
+    updatedBookStore[index] = {
+      ...updatedBookStore[index],
       [field]: value
     };
-    setColors(updatedColors);
+    setSpecifications(updatedBookStore);
   };
 
-  const addColor = () => {
-    setColors([...colors, { name: '', code: '#000000', stock: 0 }]);
+  const addSpecification = () => {
+    setSpecifications([...specifications, { key: '', value: '' }]);
   };
 
-  const removeColor = (index) => {
-    if (colors.length > 1) {
-      const updatedColors = [...colors];
-      updatedColors.splice(index, 1);
-      setColors(updatedColors);
-    }
+  const removeSpecification = (index) => {
+    const updatedBookStore = [...specifications];
+    updatedBookStore.splice(index, 1);
+    setSpecifications(updatedBookStore);
   };
 
   const handleSlugToggle = (e) => {
@@ -215,36 +192,20 @@ const EditProductModal = ({ isOpen, onClose, onEditProduct, product }) => {
       return;
     }
 
-    // ✅ UPDATED: Stock validation - handle both scenarios
-    const hasMainStock = parseInt(formData.stock) > 0;
-    const hasColorStock = colors.some(color => parseInt(color.stock) > 0);
-    
-    // If colors section is shown/active
-    if (showColorSection) {
-      // Check if all colors have names
-      if (colors.length > 0) {
-        const hasInvalidColors = colors.some(color => !color.name || color.name.trim() === '');
-        if (hasInvalidColors) {
-          setError('Please provide a name for all color variants');
-          return;
-        }
-        
-        // Check stock - either colors must have stock OR main stock
-        if (!hasColorStock && !hasMainStock) {
-          setError('Please provide stock quantity either in main stock field or in color variants');
-          return;
-        }
-      } else {
-        // Colors section enabled but no colors added - check main stock
-        if (!hasMainStock) {
-          setError('Please provide stock quantity in the main stock field');
-          return;
-        }
-      }
-    } else {
-      // Colors section disabled - main stock is required
-      if (!hasMainStock) {
-        setError('Please provide stock quantity in the main stock field');
+    // ✅ Stock validation
+    const finalStock = parseInt(formData.stock) || 0;
+    if (finalStock <= 0) {
+      setError('Stock must be greater than 0');
+      return;
+    }
+
+    // ✅ Validate specifications
+    if (specifications.length > 0) {
+      const hasEmptyBookStore = specifications.some(spec => 
+        !spec.key.trim() || !spec.value.trim()
+      );
+      if (hasEmptyBookStore) {
+        setError('Please fill both key and value for all specifications');
         return;
       }
     }
@@ -261,25 +222,14 @@ const EditProductModal = ({ isOpen, onClose, onEditProduct, product }) => {
         }
       });
 
-      // ✅ ADDED: Include colors data only if colors section is enabled
-      if (showColorSection) {
-        if (colors.length > 0) {
-          // Filter out empty color names
-          const validColors = colors.filter(color => color.name.trim() !== '');
-          if (validColors.length > 0) {
-            submitData.append('colors', JSON.stringify(validColors));
-          } else {
-            // Send empty array if colors section enabled but all colors are empty
-            submitData.append('colors', JSON.stringify([]));
-          }
-        } else {
-          // Colors section enabled but no colors added - send empty array
-          submitData.append('colors', JSON.stringify([]));
+      // ✅ Include specifications data
+      if (specifications.length > 0) {
+        const validBookStore = specifications.filter(spec => 
+          spec.key.trim() !== '' && spec.value.trim() !== ''
+        );
+        if (validBookStore.length > 0) {
+          submitData.append('specifications', JSON.stringify(validBookStore));
         }
-      } else {
-        // Colors section disabled - don't send colors field or send empty array
-        // Backend will handle empty array as no colors
-        submitData.append('colors', JSON.stringify([]));
       }
 
       imageFiles.forEach(file => {
@@ -294,9 +244,7 @@ const EditProductModal = ({ isOpen, onClose, onEditProduct, product }) => {
         description: formData.description,
         category: formData.category,
         stock: formData.stock,
-        hasColors: showColorSection,
-        colorsCount: colors.length,
-        validColors: colors.filter(color => color.name.trim() !== '').length,
+        specificationsCount: specifications.length,
         existingImagesCount: existingImages.length,
         newImagesCount: imageFiles.length
       });
@@ -325,9 +273,8 @@ const EditProductModal = ({ isOpen, onClose, onEditProduct, product }) => {
     setExistingImages([]);
     setError('');
     setAutoGenerateSlug(true);
-    // ✅ ADDED: Reset colors
-    setColors([]);
-    setShowColorSection(false);
+    // ✅ Reset specifications
+    setSpecifications([]);
     onClose();
   };
 
@@ -467,162 +414,101 @@ const EditProductModal = ({ isOpen, onClose, onEditProduct, product }) => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Main Stock Quantity
+                  Stock Quantity *
                 </label>
                 <input
                   type="number"
                   name="stock"
                   value={formData.stock}
                   onChange={handleInputChange}
-                  required={!showColorSection} // Required if colors are disabled
+                  required
                   min="0"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
                   placeholder="0"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  {showColorSection 
-                    ? "Optional if you set stock in color variants" 
-                    : "Required stock quantity"
-                  }
+                  Required stock quantity
                 </p>
               </div>
             </div>
 
-            {/* ✅ ADDED: Color Variants Section - Optional */}
+            {/* ✅ Specifications Section */}
             <div className="space-y-3 sm:space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-base sm:text-lg font-medium text-gray-900 border-b pb-2">
-                  Color Variants (Optional)
+                  Specifications (Optional)
                 </h3>
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm text-gray-600">
-                    {showColorSection ? 'Colors Enabled' : 'Add Colors'}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={toggleColorSection}
-                    className={`px-3 py-1 text-sm font-medium rounded-md shadow-sm ${
-                      showColorSection
-                        ? 'bg-gray-600 text-white hover:bg-gray-700'
-                        : 'bg-blue-600 text-white hover:bg-blue-700'
-                    }`}
-                  >
-                    {showColorSection ? 'Disable Colors' : 'Enable Colors'}
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={addSpecification}
+                  className="px-3 py-1 text-sm font-medium text-blue-600 border border-blue-600 rounded-md hover:bg-blue-50"
+                >
+                  + Add Specification
+                </button>
               </div>
               
-              {showColorSection ? (
-                <>
-                  {colors.length > 0 ? (
-                    <div className="space-y-3">
-                      {colors.map((color, index) => (
-                        <div key={index} className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-                          <div className="flex items-center justify-between mb-2">
-                            <h4 className="text-sm font-medium text-gray-700">Color #{index + 1}</h4>
-                            {colors.length > 1 && (
-                              <button
-                                type="button"
-                                onClick={() => removeColor(index)}
-                                className="text-red-600 hover:text-red-800 text-sm"
-                              >
-                                Remove
-                              </button>
-                            )}
-                          </div>
-                          
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                            <div>
-                              <label className="block text-xs font-medium text-gray-600 mb-1">
-                                Color Name *
-                              </label>
-                              <input
-                                type="text"
-                                value={color.name}
-                                onChange={(e) => handleColorChange(index, 'name', e.target.value)}
-                                required={showColorSection}
-                                className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                                placeholder="e.g., Red, Blue, Black"
-                              />
-                            </div>
-                            
-                            <div>
-                              <label className="block text-xs font-medium text-gray-600 mb-1">
-                                Color Code
-                              </label>
-                              <div className="flex items-center space-x-2">
-                                <input
-                                  type="color"
-                                  value={color.code}
-                                  onChange={(e) => handleColorChange(index, 'code', e.target.value)}
-                                  className="w-10 h-10 border border-gray-300 rounded cursor-pointer"
-                                />
-                                <input
-                                  type="text"
-                                  value={color.code}
-                                  onChange={(e) => handleColorChange(index, 'code', e.target.value)}
-                                  className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
-                                  placeholder="#FFFFFF"
-                                />
-                              </div>
-                            </div>
-                            
-                            <div>
-                              <label className="block text-xs font-medium text-gray-600 mb-1">
-                                Stock Quantity *
-                              </label>
-                              <input
-                                type="number"
-                                value={color.stock}
-                                onChange={(e) => handleColorChange(index, 'stock', parseInt(e.target.value) || 0)}
-                                min="0"
-                                required={showColorSection}
-                                className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                                placeholder="0"
-                              />
-                            </div>
-                          </div>
+              {specifications.length > 0 ? (
+                <div className="space-y-3">
+                  {specifications.map((spec, index) => (
+                    <div key={index} className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="text-sm font-medium text-gray-700">Specification #{index + 1}</h4>
+                        <button
+                          type="button"
+                          onClick={() => removeSpecification(index)}
+                          className="text-red-600 hover:text-red-800 text-sm"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">
+                            Key *
+                          </label>
+                          <input
+                            type="text"
+                            value={spec.key}
+                            onChange={(e) => handleSpecificationChange(index, 'key', e.target.value)}
+                            className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                            placeholder="e.g., Brand, Material, Size"
+                          />
                         </div>
-                      ))}
+                        
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">
+                            Value *
+                          </label>
+                          <input
+                            type="text"
+                            value={spec.value}
+                            onChange={(e) => handleSpecificationChange(index, 'value', e.target.value)}
+                            className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                            placeholder="e.g., Apple, Cotton, XL"
+                          />
+                        </div>
+                      </div>
                     </div>
-                  ) : (
-                    <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 text-center">
-                      <p className="text-sm text-gray-600 mb-3">
-                        No colors added yet. Add your first color variant.
-                      </p>
-                    </div>
-                  )}
-                  
-                  <div className="flex items-center justify-between">
-                    <button
-                      type="button"
-                      onClick={addColor}
-                      className="px-3 py-1 text-sm font-medium text-blue-600 border border-blue-600 rounded-md hover:bg-blue-50"
-                    >
-                      + Add Color Variant
-                    </button>
-                    
-                    <div className="text-xs text-gray-500">
-                      {colors.length} color(s) added
-                    </div>
-                  </div>
-                  
-                  <p className="text-xs text-gray-500">
-                    * If colors are enabled, at least one color variant must have stock.
-                    Main stock becomes optional when colors are provided.
-                  </p>
-                </>
+                  ))}
+                </div>
               ) : (
-                <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                  <p className="text-sm text-gray-600">
-                    Colors are disabled. The product will not have color variants.
-                    Stock will be managed through the main stock field above.
+                <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 text-center">
+                  <p className="text-sm text-gray-600 mb-3">
+                    No specifications added yet. Add key-value pairs for product details.
                   </p>
-                  {colors.length > 0 && (
-                    <p className="text-xs text-gray-500 mt-2">
-                      Note: {colors.length} existing color(s) will be removed when you save.
-                    </p>
-                  )}
+                  <div className="text-xs text-gray-500 space-y-1">
+                    <p>Examples:</p>
+                    <p>• Book: Key="Author", Value="John Doe"</p>
+                    <p>• Clothing: Key="Size", Value="XL"</p>
+                    <p>• Electronics: Key="Brand", Value="Apple"</p>
+                  </div>
+                </div>
+              )}
+              
+              {specifications.length > 0 && (
+                <div className="text-xs text-gray-500">
+                  {specifications.length} specification(s) added
                 </div>
               )}
             </div>

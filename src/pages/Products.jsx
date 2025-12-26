@@ -142,26 +142,11 @@ const handleAddProduct = async (productData) => {
       }
     });
     
-    // Check stock - either main stock or color stock must be provided
+    // Check stock
     const mainStock = productData.get('stock');
-    const colorsData = productData.get('colors');
     
-    let hasStock = false;
-    if (mainStock && parseInt(mainStock) > 0) {
-      hasStock = true;
-    } else if (colorsData) {
-      try {
-        const colors = JSON.parse(colorsData);
-        hasStock = Array.isArray(colors) && colors.some(color => 
-          color && parseInt(color.stock) > 0
-        );
-      } catch (e) {
-        console.error('Error parsing colors:', e);
-      }
-    }
-    
-    if (!hasStock) {
-      missingFields.push('stock (main or color variants)');
+    if (!mainStock || parseInt(mainStock) <= 0) {
+      missingFields.push('stock');
     }
     
     if (missingFields.length > 0) {
@@ -316,8 +301,6 @@ const handleAddProduct = async (productData) => {
             return {
               ...product,
               ...updatedProduct,
-              // Ensure colors array is properly updated
-              colors: updatedProduct.colors || product.colors,
               // Ensure stock is properly updated
               stock: updatedProduct.stock !== undefined ? updatedProduct.stock : product.stock
             };
@@ -401,22 +384,24 @@ const handleAddProduct = async (productData) => {
     setIsEditModalOpen(false);
   };
 
-  // Calculate total stock from colors array
+  // Calculate total stock
   const getTotalStock = (product) => {
-    // ✅ UPDATED: Check colors first, then fall back to main stock
-    if (product.colors && Array.isArray(product.colors) && product.colors.length > 0) {
-      return product.colors.reduce((total, color) => total + (parseInt(color.stock) || 0), 0);
-    }
     return product.stock || 0;
   };
 
-  // Get colors display - show first 4 colors only
-  const getColorsDisplay = (product) => {
-    if (!product.colors || !Array.isArray(product.colors) || product.colors.length === 0) {
-      return [];
+  // Safe function to get category name (handles both string and object)
+  const getCategoryName = (product) => {
+    if (!product.category) return 'N/A';
+    
+    if (typeof product.category === 'string') {
+      return product.category;
     }
     
-    return product.colors.slice(0, 4); // Show only first 4 colors
+    if (typeof product.category === 'object' && product.category !== null) {
+      return product.category.name || product.category._id || 'N/A';
+    }
+    
+    return 'N/A';
   };
 
   // Safe rendering - always ensure products is an array
@@ -425,7 +410,7 @@ const handleAddProduct = async (productData) => {
   // Mobile Card View Component
   const ProductCard = ({ product, index }) => {
     const totalStock = getTotalStock(product);
-    const displayColors = getColorsDisplay(product);
+    const categoryName = getCategoryName(product);
     
     return (
       <div className="bg-white rounded-lg shadow border border-gray-200 p-4 mb-4">
@@ -476,39 +461,8 @@ const handleAddProduct = async (productData) => {
             <p className="text-sm text-gray-900 truncate">{product.seller}</p>
           </div>
           <div>
-            <p className="text-xs text-gray-500">Colors</p>
-            <div className="flex flex-wrap gap-2 mt-1">
-              {displayColors.length > 0 ? (
-                displayColors.map((color, idx) => (
-                  <div 
-                    key={idx}
-                    className="flex items-center space-x-1"
-                    title={`${color.name} (Stock: ${color.stock})`}
-                  >
-                    <div 
-                      className="w-5 h-5 rounded-full border border-gray-300"
-                      style={{ backgroundColor: color.code || '#cccccc' }}
-                    />
-                    <div className="flex flex-col">
-                      <span className="text-xs font-semibold text-gray-800 leading-none">
-                        {color.name}
-                      </span>
-                      <span className={`text-[10px] font-medium leading-none ${ 
-                        color.stock > 5 
-                          ? 'text-green-600' 
-                          : color.stock > 0 
-                            ? 'text-yellow-600'
-                            : 'text-red-600'
-                      }`}>
-                        {color.stock}
-                      </span>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <span className="text-xs text-gray-500">No colors</span>
-              )}
-            </div>
+            <p className="text-xs text-gray-500">Category</p>
+            <p className="text-sm text-gray-900 truncate">{categoryName}</p>
           </div>
         </div>
         
@@ -636,7 +590,7 @@ const handleAddProduct = async (productData) => {
                               Price
                             </th>
                             <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Colors
+                              Category
                             </th>
                             <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                               Stock
@@ -658,7 +612,7 @@ const handleAddProduct = async (productData) => {
                           {productsToRender.length > 0 ? (
                             productsToRender.map((product, index) => {
                               const totalStock = getTotalStock(product);
-                              const displayColors = getColorsDisplay(product);
+                              const categoryName = getCategoryName(product);
                               
                               return (
                                 <tr key={product._id} className="hover:bg-gray-50">
@@ -699,39 +653,8 @@ const handleAddProduct = async (productData) => {
                                   <td className="px-3 py-4 whitespace-nowrap">
                                     <div className="text-sm font-medium text-gray-900">₹{product.price}</div>
                                   </td>
-                                  <td className="px-3 py-4">
-                                    <div className="flex flex-wrap gap-2">
-                                      {displayColors.length > 0 ? (
-                                        displayColors.map((color, idx) => (
-                                          <div 
-                                            key={idx}
-                                            className="flex flex-col items-center"
-                                            title={`${color.name} (Stock: ${color.stock})`}
-                                          >
-                                            <div 
-                                              className="w-8 h-8 rounded-full border border-gray-300 mb-1"
-                                              style={{ backgroundColor: color.code || '#cccccc' }}
-                                            />
-                                            <div className="flex flex-col items-center">
-                                              <span className="text-xs font-semibold text-gray-800 leading-none">
-                                                {color.name}
-                                              </span>
-                                              <span className={`text-[10px] font-medium leading-none ${ 
-                                                color.stock > 5 
-                                                  ? 'text-green-600' 
-                                                  : color.stock > 0 
-                                                    ? 'text-yellow-600'
-                                                    : 'text-red-600'
-                                              }`}>
-                                                {color.stock}
-                                              </span>
-                                            </div>
-                                          </div>
-                                        ))
-                                      ) : (
-                                        <span className="text-xs text-gray-500">No colors</span>
-                                      )}
-                                    </div>
+                                  <td className="px-3 py-4 whitespace-nowrap">
+                                    <div className="text-sm text-gray-900">{categoryName}</div>
                                   </td>
                                   <td className="px-3 py-4 whitespace-nowrap">
                                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${ 

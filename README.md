@@ -17,4 +17,4 @@ If you are developing a production application, we recommend using TypeScript wi
 "# ecommerce-admin-panel" 
 "# admin-panel-frontend" 
 "# admin-panel-frontend" 
-"# specs-adminpanel" 
+"# BookStore-adminpanel" 
