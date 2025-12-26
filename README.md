@@ -18,3 +18,4 @@ If you are developing a production application, we recommend using TypeScript wi
 "# admin-panel-frontend" 
 "# admin-panel-frontend" 
 "# BookStore-adminpanel" 
+"# book_adminpanel" 
