@@ -126,12 +126,12 @@ const EditProductModal = ({ isOpen, onClose, onEditProduct, product }) => {
 
   // ✅ Specifications change handlers
   const handleSpecificationChange = (index, field, value) => {
-    const updatedBookStore = [...specifications];
-    updatedBookStore[index] = {
-      ...updatedBookStore[index],
+    const updatedsoap = [...specifications];
+    updatedsoap[index] = {
+      ...updatedsoap[index],
       [field]: value
     };
-    setSpecifications(updatedBookStore);
+    setSpecifications(updatedsoap);
   };
 
   const addSpecification = () => {
@@ -139,9 +139,9 @@ const EditProductModal = ({ isOpen, onClose, onEditProduct, product }) => {
   };
 
   const removeSpecification = (index) => {
-    const updatedBookStore = [...specifications];
-    updatedBookStore.splice(index, 1);
-    setSpecifications(updatedBookStore);
+    const updatedsoap = [...specifications];
+    updatedsoap.splice(index, 1);
+    setSpecifications(updatedsoap);
   };
 
   const handleSlugToggle = (e) => {
@@ -201,10 +201,10 @@ const EditProductModal = ({ isOpen, onClose, onEditProduct, product }) => {
 
     // ✅ Validate specifications
     if (specifications.length > 0) {
-      const hasEmptyBookStore = specifications.some(spec => 
+      const hasEmptysoap = specifications.some(spec => 
         !spec.key.trim() || !spec.value.trim()
       );
-      if (hasEmptyBookStore) {
+      if (hasEmptysoap) {
         setError('Please fill both key and value for all specifications');
         return;
       }
@@ -224,11 +224,11 @@ const EditProductModal = ({ isOpen, onClose, onEditProduct, product }) => {
 
       // ✅ Include specifications data
       if (specifications.length > 0) {
-        const validBookStore = specifications.filter(spec => 
+        const validsoap = specifications.filter(spec => 
           spec.key.trim() !== '' && spec.value.trim() !== ''
         );
-        if (validBookStore.length > 0) {
-          submitData.append('specifications', JSON.stringify(validBookStore));
+        if (validsoap.length > 0) {
+          submitData.append('specifications', JSON.stringify(validsoap));
         }
       }
 
@@ -499,7 +499,7 @@ const EditProductModal = ({ isOpen, onClose, onEditProduct, product }) => {
                   </p>
                   <div className="text-xs text-gray-500 space-y-1">
                     <p>Examples:</p>
-                    <p>• Book: Key="Author", Value="John Doe"</p>
+                    <p>• soap: Key="Author", Value="John Doe"</p>
                     <p>• Clothing: Key="Size", Value="XL"</p>
                     <p>• Electronics: Key="Brand", Value="Apple"</p>
                   </div>

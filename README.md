@@ -17,5 +17,6 @@ If you are developing a production application, we recommend using TypeScript wi
 "# ecommerce-admin-panel" 
 "# admin-panel-frontend" 
 "# admin-panel-frontend" 
-"# BookStore-adminpanel" 
-"# book_adminpanel" 
+"# soap-adminpanel" 
+"# soap_adminpanel" 
+"# saop_adminpanel" 
